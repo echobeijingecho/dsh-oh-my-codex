@@ -5,6 +5,7 @@ import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { setTimeout as delay } from 'node:timers/promises'
 import { AccountService } from '../lib/account.js'
+import { createDshSubscriptionAuthBroker } from '../lib/auth-broker.js'
 import { preflight } from '../lib/codex.js'
 import { Diagnostics } from '../lib/diagnostics.js'
 import { createHandler } from '../lib/http.js'
@@ -103,4 +104,30 @@ test('settings API exposes status and requires JSON for state changes', async t 
   assert.equal(refreshed, 1)
   assert.equal((await call(handler, 'GET', '/dsh-oh-my-codex/api/nope')).code, 404)
   assert.doesNotMatch(JSON.stringify(started.body), /token|secret/i)
+})
+
+test('shared subscription login reuses the existing account without device-code login', async t => {
+  const { root, cwd } = await fixture(t)
+  const account = new AccountService(config(root), cwd, {
+    authBroker: createDshSubscriptionAuthBroker({
+      async resolve(ref) {
+        if (ref !== 'OPENAI_CODEX_SUBSCRIPTION_OAUTH') return undefined
+        return {
+          source: 'test',
+          value: JSON.stringify({
+            type: 'oauth',
+            access: 'access-1',
+            refresh: 'refresh-1',
+            expires: Date.now() + 60_000,
+            accountId: 'acct-1',
+          }),
+        }
+      },
+    }),
+  })
+  t.after(() => account.dispose())
+  const view = await account.startLogin()
+  assert.equal(view.state, 'succeeded')
+  assert.equal(view.mode, 'shared')
+  assert.equal(view.hint, '已复用「Codex 订阅」登录')
 })

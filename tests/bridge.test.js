@@ -4,6 +4,7 @@ import { readFile } from 'node:fs/promises'
 import { fileURLToPath } from 'node:url'
 import { join } from 'node:path'
 import { CodexEngine, preflight } from '../lib/codex.js'
+import { createDshSubscriptionAuthBroker } from '../lib/auth-broker.js'
 import { buildDynamicTools } from '../lib/dsh-tools.js'
 import { fixture, collect, request } from './helpers.js'
 
@@ -197,6 +198,33 @@ test('preflight reports runtime, sign-in and the account model list without star
   assert.doesNotMatch(failed.modelError, /u:p@/)
   assert.equal((await preflight(config(root, { FIXTURE_UNAUTH: '1' }), cwd)).signedIn, false)
   assert.equal((await lines(root, 'calls.jsonl')).some(c => c.method === 'thread/start'), false)
+})
+
+test('preflight authenticates through the shared subscription credential', async t => {
+  const { root, cwd } = await fixture(t)
+  const broker = createDshSubscriptionAuthBroker({
+    async resolve(ref) {
+      if (ref !== 'OPENAI_CODEX_SUBSCRIPTION_OAUTH') return undefined
+      return {
+        source: 'test',
+        value: JSON.stringify({
+          type: 'oauth',
+          access: 'shared-access',
+          refresh: 'shared-refresh',
+          expires: Date.now() + 60_000,
+          accountId: 'shared-account',
+        }),
+      }
+    },
+  })
+  const result = await preflight(config(root), cwd, { authBroker: broker })
+  assert.equal(result.signedIn, true)
+  const calls = (await readFile(join(root, 'calls.jsonl'), 'utf8')).trim().split('\n').map(line => JSON.parse(line))
+  const login = calls.find(call => call.method === 'account/login/start')
+  assert.equal(login.params.type, 'chatgptAuthTokens')
+  assert.equal(login.params.accessToken, 'shared-access')
+  assert.equal(login.params.chatgptAccountId, 'shared-account')
+  assert.equal(calls.some(call => call.method === 'account/login/start' && call.params.type === 'chatgptDeviceCode'), false)
 })
 
 test('dispatch is reported only once turn/start is about to be sent', async t => {

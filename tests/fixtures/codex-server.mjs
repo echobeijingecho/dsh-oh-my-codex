@@ -54,6 +54,15 @@ for await (const line of createInterface({ input: process.stdin })) {
   } else if (method === 'account/rateLimits/read') {
     send({ id, result: { rateLimits: { primary: { usedPercent: 20, windowDurationMins: 300, resetsAt: 1791000000 }, secondary: { usedPercent: 5, windowDurationMins: 10080, resetsAt: 1791500000 } } } })
   } else if (method === 'account/login/start') {
+    if (p?.type === 'chatgptAuthTokens') {
+      if (!p.accessToken || !p.chatgptAccountId) {
+        send({ id, error: { code: -1, message: 'missing external auth tokens' } })
+        continue
+      }
+      writeFileSync(join(root, 'auth.state'), 'in')
+      send({ id, result: { type: 'chatgptAuthTokens' } })
+      continue
+    }
     if (p?.type !== 'chatgptDeviceCode') { send({ id, error: { code: -1, message: 'unsupported login' } }); continue }
     send({ id, result: { type: 'chatgptDeviceCode', loginId: 'login-1', verificationUrl: 'https://auth.example/device', userCode: 'ABCD-1234' } })
     if (!process.env.FIXTURE_LOGIN_HOLD) {

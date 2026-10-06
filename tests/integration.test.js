@@ -29,6 +29,22 @@ async function harness(t, overrides = {}, codex = {}, planMode = false) {
   }
   if (planMode) await ctx.plugin(PlanMode, { section: 'plan:policy' })
   await ctx.plugin(AgentLoop, { agents: [] })
+  if (codex.auth?.mode === 'dsh-subscription') {
+    ctx.provide('credentials', {
+      async resolve(ref) {
+        if (ref !== 'OPENAI_CODEX_SUBSCRIPTION_OAUTH') return undefined
+        return {
+          value: JSON.stringify({
+            type: 'oauth',
+            access: 'fixture-access',
+            refresh: 'fixture-refresh',
+            expires: Date.now() + 60_000,
+            accountId: 'fixture-account',
+          }),
+        }
+      },
+    })
+  }
   const fiber = await ctx.plugin(plugin, {
     ...local.config,
     codex: {
@@ -77,6 +93,16 @@ test('published DSH runtime exposes the native model catalog and routes two turn
   assert.deepEqual(requests.filter(c => c.method === 'turn/start').map(c => c.params.input[0].text), ['remember blue', 'what color?'])
   await fiber.dispose()
   assert.equal(ctx.llm.listProviders().some(p => p.id === 'dsh-codex'), false)
+})
+
+test('shared subscription auth is injected by Cordis and reaches App Server', async t => {
+  const { ctx, cwd } = await harness(t, {}, { auth: { mode: 'dsh-subscription' } })
+  assert.equal(ctx.llm.listProviders().find(p => p.id === 'dsh-codex').name, 'Codex')
+  const agent = await ctx.agentLoop.create(SessionId('shared-auth-session'), {
+    provider: 'dsh-codex', model: 'fixture-model',
+  }, { cwd })
+  await send(agent, 'use the shared login')
+  assert.match(JSON.stringify(agent.session.snapshotEvents()), /shared login/)
 })
 
 test('gateway publishes explicit models and runs in its own CODEX_HOME', async t => {
