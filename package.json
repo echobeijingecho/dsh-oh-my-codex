@@ -1,6 +1,6 @@
 {
   "name": "dsh-oh-my-codex",
-  "version": "0.3.0",
+  "version": "0.3.1",
   "description": "Codex App Server execution engine adapter for DSH",
   "license": "MIT",
   "repository": {

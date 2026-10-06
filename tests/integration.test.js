@@ -106,6 +106,18 @@ test('gateway publishes explicit models and runs in its own CODEX_HOME', async t
   assert.equal(requests.find(call => call.method === 'turn/start').params.model, 'gateway-model-b')
 })
 
+test('provider ids remain configurable for private deployments and old sessions', async t => {
+  const { ctx, cwd } = await harness(t, {
+    providers: { codex: 'ziroom-codex', gateway: 'ziroom-codex-gateway' },
+  })
+  assert.equal(ctx.llm.listProviders().find(p => p.id === 'ziroom-codex').name, 'Codex')
+  const agent = await ctx.agentLoop.create(SessionId('legacy-provider-session'), {
+    provider: 'ziroom-codex', model: 'fixture-model',
+  }, { cwd })
+  await send(agent, 'keep the legacy provider id')
+  assert.match(JSON.stringify(agent.session.snapshotEvents()), /streamed response/)
+})
+
 test('community Claude mode does not register a duplicate Claude provider', async t => {
   const { ctx } = await harness(t, { claude: { mode: 'community', provider: 'claude-code' } })
   assert.equal(ctx.llm.listProviders().some(provider => provider.id === 'claude-code'), false)

@@ -105,6 +105,20 @@ test('fork provenance comes from the newest Codex reply and refuses replies with
   assert.equal(inheritedProvenance([user('a')], 'dsh-codex'), undefined)
 })
 
+test('fork provenance supports a private legacy provider id through the route map', () => {
+  const routes = { 'ziroom-codex': 'codex' }
+  const messages = [{
+    role: 'assistant',
+    source: {
+      provider: 'ziroom-codex',
+      replayState: { response: { engine: 'codex', threadId: 't', turnId: 'u' } },
+    },
+  }]
+  assert.deepEqual(inheritedProvenance(messages, 'ziroom-codex', routes), {
+    index: 0, threadId: 't', turnId: 'u',
+  })
+})
+
 test('sandbox modes map DSH permissions to native or external Codex policies', async () => {
   const { executionPolicy } = await import('../lib/codex.js')
   const write = { sandbox: 'workspace-write', approval: 'ask' }

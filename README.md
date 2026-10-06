@@ -84,6 +84,10 @@ DSH 治理的 Codex 功能默认关闭。
 | `dsh-codex` | Codex 官方账号或直接配置的 Codex 运行方式 |
 | `dsh-codex-gateway` | 可选的独立模型网关通道 |
 
+provider ID 可通过顶层 `providers.codex` 和 `providers.gateway` 配置。默认值是
+`dsh-codex` 与 `dsh-codex-gateway`；私有部署如果已经把旧 ID 写入会话状态，可以
+继续使用例如 `ziroom-codex` 与 `ziroom-codex-gateway`，无需改写历史会话。
+
 `claude-code` 等其他执行引擎不由本项目实现。若同一 DSH 实例安装了兼容的社区
 适配器，本项目只负责阻止同一会话在不同执行引擎之间切换。
 
