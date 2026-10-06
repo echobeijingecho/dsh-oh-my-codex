@@ -30,6 +30,7 @@
     "README.md",
     "CLAUDE.md.example",
     "cordis.patch.yml.example",
+    "cordis.patch.yml",
     "docs",
     "LICENSE"
   ],
@@ -69,6 +70,9 @@
       "inject": [
         "@deepseek-ai/dsh-client-runtime"
       ]
+    },
+    "bundle": {
+      "patch": "./cordis.patch.yml"
     }
   },
   "publishConfig": {
