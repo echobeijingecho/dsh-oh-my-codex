@@ -1,0 +1,29 @@
+# Copy this example into the DSH instance configuration and adapt the paths.
+# Keep the plugin disabled until credentials, workspace policy, and sandbox
+# behavior have been verified in a disposable instance.
+- insert:
+    - id: dsh-oh-my-codex
+      name: dsh-oh-my-codex
+      disabled: true
+      config:
+        ownerId: !!js process.env.DSH_ENGINE_OWNER
+        stateDir: !!js process.env.DSH_ENGINE_STATE_DIR
+        allowedWorkspaces:
+          - !!js process.env.DSH_ENGINE_WORKSPACE_ROOT
+        auxiliaryProvider: !!js process.env.DSH_ENGINE_AUX_PROVIDER
+        auxiliaryModel: !!js process.env.DSH_ENGINE_AUX_MODEL
+        codex:
+          enabled: true
+          command: !!js process.env.DSH_CODEX_BIN
+          env:
+            CODEX_HOME: !!js process.env.DSH_CODEX_HOME
+          models:
+            - id: !!js process.env.DSH_CODEX_MODEL
+              name: !!js process.env.DSH_CODEX_MODEL
+          dshTools: []
+          enforceModelList: false
+          multiAgent:
+            enabled: false
+            mode: explicit
+            maxAgents: 4
+            maxDepth: 2

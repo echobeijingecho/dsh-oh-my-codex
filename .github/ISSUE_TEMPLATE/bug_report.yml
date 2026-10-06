@@ -1,0 +1,34 @@
+name: Bug report
+description: Report a reproducible problem
+title: "[bug] "
+body:
+  - type: markdown
+    attributes:
+      value: |
+        Please remove credentials, workspace paths, transcripts, and private URLs.
+  - type: input
+    id: version
+    attributes:
+      label: dsh-oh-my-codex version
+      placeholder: 0.3.0
+    validations:
+      required: true
+  - type: input
+    id: codex
+    attributes:
+      label: Codex CLI version
+      placeholder: 0.155.0
+    validations:
+      required: true
+  - type: textarea
+    id: reproduce
+    attributes:
+      label: Reproduction
+      description: Include the smallest configuration and test command that reproduces the issue.
+    validations:
+      required: true
+  - type: textarea
+    id: logs
+    attributes:
+      label: Logs
+      description: Include redacted diagnostics only.

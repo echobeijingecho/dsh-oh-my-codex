@@ -1,0 +1,51 @@
+# Opt-in only. Install alongside the instance's existing DSH dependencies.
+# Keep disabled until the instance owner, credentials and sandbox are verified.
+- insert:
+    - id: dsh-oh-my-codex
+      name: dsh-oh-my-codex
+      disabled: true
+      config:
+        ownerId: !!js process.env.DSH_ENGINE_OWNER
+        stateDir: !!js process.env.DSH_ENGINE_STATE_DIR
+        allowedWorkspaces:
+          - !!js process.env.DSH_ENGINE_WORKSPACE_ROOT
+        auxiliaryProvider: !!js process.env.DSH_ENGINE_AUX_PROVIDER
+        auxiliaryModel: !!js process.env.DSH_ENGINE_AUX_MODEL
+        codex:
+          enabled: true
+          command: !!js process.env.DSH_CODEX_BIN
+          env:
+            CODEX_HOME: !!js process.env.DSH_CODEX_HOME
+          models:
+            - id: !!js process.env.DSH_CODEX_MODEL
+              name: !!js process.env.DSH_CODEX_MODEL
+          gateway:
+            # Independent per-instance LiteLLM route. The gateway model list is
+            # explicit because /v1/models is not a reliable callable catalog.
+            enabled: !!js process.env.DSH_CODEX_GATEWAY_ENABLED
+            home: !!js process.env.DSH_CODEX_GATEWAY_HOME
+            baseUrl: !!js process.env.DSH_CODEX_GATEWAY_URL
+            providerName: codex-gateway
+            apiKeyEnv: CODEX_GATEWAY_API_KEY
+            apiKeyFile: !!js process.env.DSH_CODEX_GATEWAY_KEY_FILE
+            apiKeyFileEnv: CODEX_GATEWAY_KEY
+            wireApi: responses
+            # The key is read from apiKeyFile at Codex process start.
+            # Do not put the value in this patch.
+            models:
+              - id: !!js process.env.DSH_CODEX_GATEWAY_MODEL
+                name: !!js process.env.DSH_CODEX_GATEWAY_MODEL
+          reasoningSummary: auto
+          # Governed DSH tools handed to Codex; remove the same MCP from CODEX_HOME.
+          dshTools: []
+          enforceModelList: false
+          # Native Codex sub-agents are opt-in and require model/list multiAgentVersion v1/v2.
+          multiAgent:
+            enabled: false
+            mode: explicit
+            maxAgents: 4
+            maxDepth: 2
+        claude:
+          # Optional: enable only when a compatible Claude adapter is installed.
+          mode: disabled
+          provider: claude-code
