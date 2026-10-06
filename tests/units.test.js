@@ -10,6 +10,18 @@ import { fixture } from './helpers.js'
 import { EngineError, engineFailure } from '../lib/errors.js'
 import { subagentTodo, writeTodoSnapshot } from '../lib/external-tools.js'
 import { gatewayConfigToml, prepareGatewayConfig } from '../lib/gateway-home.js'
+import { CLIENT_INFO, PACKAGE_NAME, PACKAGE_VERSION } from '../lib/identity.js'
+
+test('client attribution follows the published package metadata', async () => {
+  const packageJson = JSON.parse(await readFile(new URL('../package.json', import.meta.url), 'utf8'))
+  assert.equal(PACKAGE_NAME, packageJson.name)
+  assert.equal(PACKAGE_VERSION, packageJson.version)
+  assert.deepEqual(CLIENT_INFO, {
+    name: packageJson.name,
+    title: 'DSH Oh My Codex',
+    version: packageJson.version,
+  })
+})
 
 test('sub-agent events become stable bounded todo items without erasing the plan', () => {
   const writes = []

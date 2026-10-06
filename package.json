@@ -3,6 +3,14 @@
   "version": "0.3.0",
   "description": "Codex App Server execution engine adapter for DSH",
   "license": "MIT",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/echobeijingecho/dsh-oh-my-codex.git"
+  },
+  "bugs": {
+    "url": "https://github.com/echobeijingecho/dsh-oh-my-codex/issues"
+  },
+  "homepage": "https://github.com/echobeijingecho/dsh-oh-my-codex#readme",
   "keywords": [
     "dsh",
     "codex",
@@ -29,7 +37,9 @@
     "node": ">=22.19.0"
   },
   "scripts": {
-    "test": "node --test tests/*.test.js"
+    "pretest": "node scripts/check-node.mjs",
+    "test": "node --test tests/*.test.js",
+    "check": "npm test && npm pack --dry-run"
   },
   "dependencies": {
     "@deepseek-ai/schemastery": "^3.18.1",
@@ -60,5 +70,8 @@
         "@deepseek-ai/dsh-client-runtime"
       ]
     }
+  },
+  "publishConfig": {
+    "access": "public"
   }
 }
