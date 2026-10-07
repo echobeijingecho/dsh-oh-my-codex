@@ -16,9 +16,18 @@
           command: !!js process.env.DSH_CODEX_BIN
           env:
             CODEX_HOME: !!js process.env.DSH_CODEX_HOME
+          # Recommended catalog for ChatGPT-subscription auth (as of
+          # 2026-10): gpt-6-astra (strongest), gpt-6.1-sol (official
+          # default), gpt-6-luna (cheapest tier). gpt-5.5 retires on
+          # 2026-10-14 — do not pin it. discoverModels: true unions the
+          # account's live model/list into the picker.
           models:
-            - id: !!js process.env.DSH_CODEX_MODEL
-              name: !!js process.env.DSH_CODEX_MODEL
+            - id: gpt-6-astra
+              name: GPT-6 Astra · 最强
+            - id: gpt-6.1-sol
+              name: GPT-6.1 Sol · 官方默认
+            - id: gpt-6-luna
+              name: GPT-6 Luna · 低价高效
           gateway:
             # Independent per-instance LiteLLM route. The gateway model list is
             # explicit because /v1/models is not a reliable callable catalog.
@@ -35,6 +44,9 @@
             models:
               - id: !!js process.env.DSH_CODEX_GATEWAY_MODEL
                 name: !!js process.env.DSH_CODEX_GATEWAY_MODEL
+          # Union the account's live model/list into the picker on top of
+          # the static catalog above (subscription engine only).
+          discoverModels: true
           reasoningSummary: auto
           # Governed DSH tools handed to Codex; remove the same MCP from CODEX_HOME.
           dshTools: []

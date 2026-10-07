@@ -54,6 +54,18 @@ export DSH_ENGINE_AUX_MODEL='your-normal-dsh-model'
 
 `codex.models` 是管理员声明的模型目录，不会因为 DSH 下拉框输入而动态执行
 任意模型。启用 `enforceModelList` 后，Codex 的 `model/list` 未返回的模型会被拒绝。
+`discoverModels: true` 会把账号 `model/list` 实际返回的模型并入下拉框（订阅引擎；
+网关引擎始终只认显式目录，因为 `/v1/models` 不是可靠的可调清单）。
+
+推荐目录（2026-10，ChatGPT 订阅认证）：
+
+| 模型 | 定位 |
+| --- | --- |
+| `gpt-6-astra` | 最强档，复杂任务 |
+| `gpt-6.1-sol` | 官方默认，性价比 |
+| `gpt-6-luna` | 低价高效，高频日常 |
+
+`gpt-5.5` 于 2026-10-14 退役，勿再固定；`gpt-5.4` 系已退役。
 
 网关模式必须使用独立的 `CODEX_HOME`，并显式配置 `baseUrl`、密钥来源和模型目录。
 密钥应来自环境变量或受控文件，不要写入 YAML、日志或仓库。
