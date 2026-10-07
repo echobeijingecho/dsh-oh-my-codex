@@ -40,7 +40,12 @@ async function schema(t) {
     }
     return new Set(Object.keys(node.properties ?? {}))
   }
-  return { methods, props }
+  const referencedProps = (name, field) => {
+    const ref = definitions[name]?.properties?.[field]?.$ref
+    assert.ok(ref?.startsWith('#/definitions/'), `${name}.${field} lacks a local schema reference`)
+    return props(ref.slice('#/definitions/'.length))
+  }
+  return { methods, props, referencedProps }
 }
 
 function includesAll(set, names, label) {
@@ -48,7 +53,7 @@ function includesAll(set, names, label) {
 }
 
 test('protocol methods and fields the router consumes exist in this Codex', { skip }, async t => {
-  const { methods, props } = await schema(t)
+  const { methods, props, referencedProps } = await schema(t)
   includesAll(methods('ClientRequest'), [
     'initialize', 'account/read', 'model/list', 'thread/start', 'thread/resume', 'thread/fork', 'turn/start',
     'account/login/start', 'account/login/cancel', 'account/logout', 'account/rateLimits/read',
@@ -75,11 +80,16 @@ test('protocol methods and fields the router consumes exist in this Codex', { sk
   includesAll(props('ThreadItem', 'userMessage'), ['id', 'clientId', 'content'], 'userMessage')
   includesAll(props('TurnSteerParams'), ['threadId', 'input', 'expectedTurnId', 'clientUserMessageId'], 'TurnSteerParams')
   includesAll(props('UserInput', 'localImage'), ['path', 'detail'], 'localImage')
-  includesAll(props('ReviewTarget'), ['type'], 'ReviewTarget')
+  for (const [variant, fields] of [
+    ['uncommittedChanges', ['type']],
+    ['baseBranch', ['type', 'branch']],
+    ['commit', ['type', 'sha']],
+    ['custom', ['type', 'instructions']],
+  ]) includesAll(props('ReviewTarget', variant), fields, `ReviewTarget.${variant}`)
   includesAll(props('ReviewStartParams'), ['threadId', 'target', 'delivery'], 'ReviewStartParams')
   includesAll(props('ThreadCompactStartParams'), ['threadId'], 'ThreadCompactStartParams')
   includesAll(props('CollaborationMode'), ['mode', 'settings'], 'CollaborationMode')
-  includesAll(props('CollaborationModeSettings'), ['model', 'reasoning_effort', 'developer_instructions'], 'CollaborationModeSettings')
+  includesAll(referencedProps('CollaborationMode', 'settings'), ['model', 'reasoning_effort', 'developer_instructions'], 'CollaborationModeSettings')
   includesAll(props('CommandExecutionOutputDeltaNotification'), ['threadId', 'turnId', 'itemId', 'delta'], 'outputDelta')
   includesAll(props('ReasoningSummaryTextDeltaNotification'), ['threadId', 'turnId', 'itemId', 'delta'], 'summaryTextDelta')
   includesAll(props('DynamicToolCallParams'), ['threadId', 'turnId', 'callId', 'namespace', 'tool', 'arguments'], 'DynamicToolCallParams')
@@ -113,6 +123,7 @@ test('a real App Server accepts the safety flags, handshake and a dynamic-tool t
   await mkdir(home)
   const rpc = new AppServer({
     command: bin, args: [], rpcTimeoutMs: 20000,
+    multiAgent: { enabled: true, maxAgents: 2, maxDepth: 1 },
     env: { CODEX_HOME: home, PATH: process.env.PATH, HOME: root },
   }, cwd, AbortSignal.timeout(60000))
   t.after(() => rpc.close())
@@ -122,6 +133,10 @@ test('a real App Server accepts the safety flags, handshake and a dynamic-tool t
   })
   assert.equal(typeof init.userAgent, 'string')
   rpc.send({ method: 'initialized' })
+  const effective = await rpc.request('config/read', { includeLayers: false })
+  const agents = effective.config.agents
+  assert.equal(agents.max_concurrent_threads_per_session ?? agents.max_threads, 2)
+  assert.equal(agents.max_depth, 1)
   const account = await rpc.request('account/read', { refreshToken: false })
   assert.equal(typeof account.requiresOpenaiAuth, 'boolean')
   const tools = buildDynamicTools([{ name: 'mcp__hive__query', description: 'q', parameters: { type: 'object', properties: { sql: { type: 'string' } } } }], ['mcp__*'])

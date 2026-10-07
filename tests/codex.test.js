@@ -37,6 +37,20 @@ test('native multi-agent is opt-in and overrides the hardened feature denylist',
   assert.ok(enabled.includes('features.multi_agent=true'))
 })
 
+test('native multi-agent execution limits reach app-server with and without hardening', () => {
+  for (const hardening of [true, false]) {
+    const args = launchArgs({ hardening, disableShellSnapshot: false,
+      multiAgent: { enabled: true, maxAgents: 2, maxDepth: 1 } })
+    assert.ok(args.includes('features.multi_agent=true'))
+    assert.ok(args.includes('agents.max_threads=2'))
+    assert.ok(args.includes('agents.max_depth=1'))
+  }
+  const defaults = launchArgs({ multiAgent: { enabled: true } })
+  assert.ok(defaults.includes('agents.max_threads=4'))
+  assert.ok(defaults.includes('agents.max_depth=2'))
+  assert.equal(launchArgs({ multiAgent: { enabled: false } }).some(arg => arg.startsWith('agents.')), false)
+})
+
 test('real stdio process streams and resumes the same thread without duplicate text', async t => {
   const { root, cwd } = await fixture(t)
   let threadId

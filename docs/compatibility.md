@@ -37,3 +37,12 @@ The account, plan, region, and gateway still decide which models can run.
 The provider can use an isolated `CODEX_HOME`. Operators must not copy one
 subscription credential to multiple users or expose the provider as an
 uncontrolled shared endpoint.
+
+## Native multi-agent execution limits
+
+When enabled, `multiAgent.maxAgents` is passed as `agents.max_threads` (the
+legacy alias for the concurrent child-thread limit) and `maxDepth` as
+`agents.max_depth`. These apply independently of hardening. The real-binary
+contract test reads the effective configuration to check both values; it
+does not run a model or prove spawn/limit behavior. Live-model depth and
+concurrency verification remains a separate acceptance step.
