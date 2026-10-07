@@ -80,6 +80,12 @@ export DSH_ENGINE_AUX_MODEL='your-normal-dsh-model'
   周窗口耗尽不自动重试，仅给出中文重置说明；同一 turn+step 至多重试一次（事件持久，
   跨重启成立）。
 
+### 网络搜索
+
+`codex.webSearch`（默认 `disabled`）透传 Codex 原生 web search 配置
+（`cached`/`indexed`/`live`，语义见 Codex config 参考）。容器出网是显式白名单，
+开启前先确认实例可达搜索后端。
+
 ### DSH 工具
 
 `codex.dshTools` 使用 glob 白名单。只有匹配的 DSH 工具会通过

@@ -203,3 +203,12 @@ test('steer port failures degrade softly and close drops the buffer', async () =
   assert.equal(requests.length, 1)
   events.end()
 })
+
+test('launchArgs passes webSearch through and stays silent when disabled', async () => {
+  const { launchArgs } = await import('../lib/codex.js')
+  const off = launchArgs({ webSearch: 'disabled' })
+  assert.equal(off.some(arg => arg.startsWith('web_search')), false)
+  const on = launchArgs({ webSearch: 'live' })
+  const at = on.indexOf('web_search=live')
+  assert.ok(at > 0 && on[at - 1] === '-c')
+})

@@ -48,6 +48,9 @@
           # the static catalog above (subscription engine only).
           discoverModels: true
           quotaRetryMaxWaitMins: 360
+          # Native Codex web search; requires the container egress to reach
+          # the search backend (default off).
+          webSearch: disabled
           reasoningSummary: auto
           # Governed DSH tools handed to Codex; remove the same MCP from CODEX_HOME.
           dshTools: []
