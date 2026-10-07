@@ -872,4 +872,3 @@ test('weekly exhaustion explains itself without retry metadata', async t => {
   assert.equal(errors[0].providerRetryAfterMs, undefined)
   assert.match(errors[0].message, /周额度已用尽/)
 })
-

@@ -9,7 +9,7 @@ contract test.
 
 | dsh-oh-my-codex | DSH | Codex CLI | Notes |
 | --- | --- | --- | --- |
-| 0.3.x | 0.1.7-rc.2 | 0.155+ | Current extracted baseline |
+| 0.4.x | 0.1.7-rc.2 | 0.155+ | Current extracted baseline; verify the exact CLI build with the real contract test |
 
 The matrix is a compatibility statement, not a model availability statement.
 The account, plan, region, and gateway still decide which models can run.
