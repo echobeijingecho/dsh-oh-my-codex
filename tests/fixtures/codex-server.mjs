@@ -52,7 +52,13 @@ for await (const line of createInterface({ input: process.stdin })) {
     try { auth = readFileSync(join(root, 'auth.state'), 'utf8') } catch {}
     send({ id, result: { requiresOpenaiAuth: true, account: auth === 'in' ? { type: 'chatgpt', email: 'user@example.com', planType: 'pro' } : null } })
   } else if (method === 'account/rateLimits/read') {
-    send({ id, result: { rateLimits: { primary: { usedPercent: 20, windowDurationMins: 300, resetsAt: 1791000000 }, secondary: { usedPercent: 5, windowDurationMins: 10080, resetsAt: 1791500000 } } } })
+    const resetsIn = Math.floor(Date.now() / 1000) + Number(process.env.FIXTURE_QUOTA_RESET_IN_S || 600)
+    const mode = process.env.FIXTURE_QUOTA
+    send({ id, result: { rateLimits: mode === 'exhausted'
+      ? { primary: { usedPercent: 100, windowDurationMins: 300, resetsAt: resetsIn }, secondary: { usedPercent: 5, windowDurationMins: 10080, resetsAt: 1791500000 } }
+      : mode === 'weekly'
+        ? { primary: { usedPercent: 20, windowDurationMins: 300, resetsAt: 1791000000 }, secondary: { usedPercent: 100, windowDurationMins: 10080, resetsAt: resetsIn } }
+        : { primary: { usedPercent: 20, windowDurationMins: 300, resetsAt: 1791000000 }, secondary: { usedPercent: 5, windowDurationMins: 10080, resetsAt: 1791500000 } } } })
   } else if (method === 'account/login/start') {
     if (p?.type === 'chatgptAuthTokens') {
       if (!p.accessToken || !p.chatgptAccountId) {
@@ -287,6 +293,23 @@ for await (const line of createInterface({ input: process.stdin })) {
       send({ method: 'error', params: { threadId: thread, turnId, willRetry: true, error: { message: 'stream disconnected', codexErrorInfo: { responseStreamDisconnected: { httpStatusCode: null } } } } })
       send({ method: 'error', params: { threadId: thread, turnId, willRetry: true, error: { message: 'again', codexErrorInfo: null } } })
       finish('recovered')
+    } else if (scenario === 'quota-fail' || scenario === 'quota-after-work') {
+      // First turn for this text: exhausted short window, zero output.
+      const resetsAt = Math.floor(Date.now() / 1000) + Number(process.env.FIXTURE_QUOTA_RESET_IN_S || 600)
+      send({ method: 'account/rateLimits/updated', params: { rateLimits: { primary: { usedPercent: 100, windowDurationMins: 300, resetsAt } } } })
+      if (scenario === 'quota-after-work') {
+        const itemId = randomUUID()
+        send({ method: 'item/started', params: { threadId: thread, turnId, item: { id: itemId, type: 'commandExecution', status: 'inProgress' } } })
+        send({ method: 'item/completed', params: { threadId: thread, turnId, item: { id: itemId, type: 'commandExecution', status: 'completed', exitCode: 0 } } })
+      }
+      const seen = history.filter(entry => entry === text).length
+      if (seen <= 1) {
+        settleTurn(thread, turnId, { status: 'failed', error: { message: 'raw usageLimitExceeded', codexErrorInfo: 'usageLimitExceeded' } })
+        send({ method: 'error', params: { threadId: thread, turnId, willRetry: false, error: { message: 'raw usageLimitExceeded', codexErrorInfo: 'usageLimitExceeded' } } })
+        send({ method: 'turn/completed', params: { threadId: thread, turn: { id: turnId, status: 'failed', error: { message: 'raw usageLimitExceeded', codexErrorInfo: 'usageLimitExceeded' } } } })
+      } else {
+        finish('quota recovered')
+      }
     } else if (scenario.startsWith('fail-')) {
       const info = scenario.slice(5)
       settleTurn(thread, turnId, { status: 'failed', error: { message: `raw ${info}`, codexErrorInfo: info } })

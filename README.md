@@ -70,6 +70,16 @@ export DSH_ENGINE_AUX_MODEL='your-normal-dsh-model'
 网关模式必须使用独立的 `CODEX_HOME`，并显式配置 `baseUrl`、密钥来源和模型目录。
 密钥应来自环境变量或受控文件，不要写入 YAML、日志或仓库。
 
+### 订阅额度与自动重试
+
+- 输入框右侧的额度 pill 仅在 Codex 引擎会话中显示（短窗口在前，附周窗口），
+  数据来自启动检测与每轮 turn 的 `account/rateLimits/updated` 推送，60s 轮询兜底。
+- `codex.quotaRetryMaxWaitMins`（默认 360，0 关闭）：额度耗尽的 turn 若**零产出**且
+  耗尽的是 ≤6 小时的短窗口，绑定会回滚为可重发，并在重置后自动重试一次
+  （渲染为 DSH 原生 model-retry 节点，可随时停止）。中途耗尽（已有产出）与
+  周窗口耗尽不自动重试，仅给出中文重置说明；同一 turn+step 至多重试一次（事件持久，
+  跨重启成立）。
+
 ### DSH 工具
 
 `codex.dshTools` 使用 glob 白名单。只有匹配的 DSH 工具会通过

@@ -47,6 +47,7 @@
           # Union the account's live model/list into the picker on top of
           # the static catalog above (subscription engine only).
           discoverModels: true
+          quotaRetryMaxWaitMins: 360
           reasoningSummary: auto
           # Governed DSH tools handed to Codex; remove the same MCP from CODEX_HOME.
           dshTools: []

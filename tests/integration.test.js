@@ -824,3 +824,52 @@ test('plan mode off sends default explicitly only after a plan turn', async t =>
   const starts = (await calls(root)).filter(c => c.method === 'turn/start')
   assert.equal(starts.at(-1).params.collaborationMode.mode, 'default')
 })
+
+test('quota-exhausted turn fails retryable and a resend succeeds on the same thread', async t => {
+  const { ctx, cwd } = await harness(t, {}, { quotaRetryMaxWaitMins: 0, env: { FIXTURE_QUOTA: 'exhausted', FIXTURE_QUOTA_RESET_IN_S: '1200' } })
+  const errors = []
+  ctx.on('agent/error', ({ error }) => errors.push(error))
+  const agent = await ctx.agentLoop.create(SessionId('quota-retry'), {
+    provider: 'dsh-codex', model: 'fixture-model',
+  }, { cwd })
+  await send(agent, 'quota-fail')
+  assert.equal(errors.length, 1)
+  assert.equal(errors[0].code, 'ENGINE_QUOTA')
+  assert.match(errors[0].message, /额度已用尽/)
+  assert.match(errors[0].message, /自动重试本条消息/)
+  // The router rolled the binding back: the same message resends as a new
+  // turn without any reconciliation prompt.
+  await send(agent, 'quota-fail')
+  const events = agent.session.snapshotEvents()
+  const answers = events.filter(e => e.type === 'assistant/message')
+  assert.match(JSON.stringify(answers.at(-1)), /quota recovered/)
+  assert.equal(events.filter(e => JSON.stringify(e).includes('恢复')).length, 0)
+})
+
+test('quota exhausted after output stays uncertain (no auto-retry marking)', async t => {
+  const { ctx, cwd } = await harness(t, {}, { quotaRetryMaxWaitMins: 0, env: { FIXTURE_QUOTA: 'exhausted', FIXTURE_QUOTA_RESET_IN_S: '1200' } })
+  const errors = []
+  ctx.on('agent/error', ({ error }) => errors.push(error))
+  const agent = await ctx.agentLoop.create(SessionId('quota-mid'), {
+    provider: 'dsh-codex', model: 'fixture-model',
+  }, { cwd })
+  await send(agent, 'quota-after-work')
+  assert.equal(errors.length, 1)
+  assert.equal(errors[0].code, 'ENGINE_QUOTA')
+  assert.equal(errors[0].providerRetryAfterMs, undefined)
+  assert.match(errors[0].message, /中途用尽/)
+})
+
+test('weekly exhaustion explains itself without retry metadata', async t => {
+  const { ctx, cwd } = await harness(t, {}, { quotaRetryMaxWaitMins: 0, env: { FIXTURE_QUOTA: 'weekly', FIXTURE_QUOTA_RESET_IN_S: '3600' } })
+  const errors = []
+  ctx.on('agent/error', ({ error }) => errors.push(error))
+  const agent = await ctx.agentLoop.create(SessionId('quota-weekly'), {
+    provider: 'dsh-codex', model: 'fixture-model',
+  }, { cwd })
+  await send(agent, 'quota-fail')
+  assert.equal(errors[0].code, 'ENGINE_QUOTA')
+  assert.equal(errors[0].providerRetryAfterMs, undefined)
+  assert.match(errors[0].message, /周额度已用尽/)
+})
+
